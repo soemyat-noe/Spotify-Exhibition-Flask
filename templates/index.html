@@ -1,11 +1,49 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Virtual Exhibiton</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Art here!</title>
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
+    <header>
+        <h1>-ˋˏ༻ A Little Dose of Art ༺ˎˊ-</h1>
+        <p>✿✿✿ It's been a long day ✿✿✿</p>
+    </header>
 
+    <main>
+        <!-- Artworks Section -->
+        <section class="artworks-section">
+            <form method="POST">
+                <button type="submit" class="generate-btn">Press me</button>
+            </form>
+
+            {% if artworks %}
+                <div class="artworks">
+                    {% for artwork in artworks %}
+                        <div class="artwork">
+                            <img src="{{ artwork.image_url }}" alt="{{ artwork.title }}">
+                            <p><strong>{{ artwork.title }}</strong></p>
+                            <p>{{ artwork.artist }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </section>
+
+        <!-- Music stuff -->
+
+        {% if album %}
+            <div class="album-section">
+                <h2>Tunes, for You</h2>
+                <iframe src="{{ album }}" width="300" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
+            </div>
+        {% endif %}
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Soe-Myat</p>
+    </footer>
 </body>
 </html>

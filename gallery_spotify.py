@@ -1,12 +1,10 @@
+import random
+import json
 import spotipy
 import spotipy.util as util
-import json
-import webbrowser
-import pandas
-import pandas as pd
-import urllib.request
-import random
+import requests
 
+# Load Spotify credentials from JSON file
 cred = "spotify_keys.json"
 with open(cred, "r") as key_file:
     api_tokens = json.load(key_file)
@@ -16,111 +14,74 @@ client_secret = api_tokens['client_secret']
 redirectURI = api_tokens['redirect']
 username = api_tokens['username']
 
-scope = 'user-read-private user-read-playback-state user-modify-playback-state playlist-modify-public user-library-read'
+scope = 'playlist-modify-public playlist-modify-private user-library-read'
 token = util.prompt_for_user_token(username, scope, client_id=client_id, client_secret=client_secret, redirect_uri=redirectURI)
 
 sp = spotipy.Spotify(auth=token, retries=10)
-genre_seeds = sp.recommendation_genre_seeds()
 
-url = "https://api.artic.edu/api/v1/artworks?fields=id,title,artist_display,date_display,classification_titles,department_title,image_id&limit=100"
-request = urllib.request.Request(url)
-response = urllib.request.urlopen(request)
-all_art_data= json.loads(response.read())
-    
-artworks_df = pd.json_normalize(all_art_data['data'])
-artworks_with_images_df = artworks_df[artworks_df["image_id"].notna()]
+# Curated track URIs (based on your albums)
+TRACK_URIS = [
+    "spotify:track:6cE2FLwrFQax3nU57J9F1F",  # Ryo Fukui - It Could Happen to You
+    "spotify:track:4ymgmXnpuuOiJt9EtL3o8b",  # Ryo Fukui - Early Summer
+    "spotify:track:0FcHBk3o2mksDRMEmhtUmU",  # Hiroshi Yoshimura - Crepuscule
+    "spotify:track:2PXqAFHVRfTYkVYrFSx09z",  # Hiroshi Yoshimura - Horizon
+    "spotify:track:2UXWhOdhRVFzfdadRBak1c",  # Hiroshi Suzuki - Cat
+    "spotify:track:6x1vPr3TFTWKPqeQlwROdF",  # Hiroshi Suzuki - Walk Tall
+    "spotify:track:6bLOvxk4Xswv9cYQFByZjJ",  # Masabumi Kikuchi - Dancing Mist
+    "spotify:track:3fHsUAMKfOKHH6pGe4nPdS",  # Masabumi Kikuchi - Dreamscape
+    "spotify:track:5YF3pJm9VFXi6exEnVPwxD",  # Toshiko Akiyoshi - When Johnny Comes Marching Home
+    "spotify:track:1ctNTWsRbZdQzY7NJZbFvL",  # Toshiko Akiyoshi - Blues for Toshiko
+]
 
-unique_departments = artworks_with_images_df["department_title"].unique()
-departments_of_interest = ["Modern Art", "Contemporary Art", "Textiles", "Photography and Media", "Prints and Drawings"]
-filtered_departments_df = artworks_with_images_df[artworks_with_images_df["department_title"].isin(departments_of_interest)]
-department_counts = artworks_with_images_df["department_title"].value_counts()
-
-art_to_music_map = {
-    # Group 1: Abstract and Experimental
-    "Modern Art": ["ambient", "experimental", "trip-hop", "alt-rock", "idm"],
-    "Contemporary Art": ["ambient", "experimental", "trip-hop", "alt-rock", "idm"],
-    
-    # Group 2: Textiles and Cultural Arts
-    "Textiles": ["new-age", "ethereal", "drone", "ambient"],
-    "Arts of the Americas": ["folk", "americana"],
-    "Arts of Africa": ["afrobeat", "african", "ethereal"],
-    
-    # Group 3: Historical and Classical Arts
-    "Painting and Sculpture of Europe": ["classical", "ethereal"],
-    "Applied Arts of Europe": ["jazz", "blues", "classical"],
-    "Arts of the Ancient Mediterranean and Byzantium": ["classical","medieval"],
-    
-    # Group 4: Photography and Media
-    "Photography and Media": ["cinematic", "dark-ambient", "lo-fi", "soundscapes", "drone"],
-    "Prints and Drawings": ["ethereal", "ambient", "downtempo", "soundscapes"],
-    
-    # Group 5: Asian Art and Fusion
-    "Arts of Asia": ["cantopop", "k-pop", "j-pop"]
-
-}
-for art_category in art_to_music_map.keys():
-    genre_seeds = art_to_music_map.get(art_category)
-
-    random_genre_seeds = random.sample(genre_seeds, min(5, len(genre_seeds)))
-
-    recommendations = sp.recommendations(seed_genres=random_genre_seeds, limit=5)
-
-    for track in recommendations['tracks']:
-        track_name = track['name']
-        artist_name = track['artists'][0]['name']
-
-def display_virtual_exhibition_with_music(artworks_with_images_df, art_to_music_map, num_samples=5):
-    # Randomly sample artworks to display
-    sampled_artworks = artworks_with_images_df.sample(n=num_samples)
-    all_recommended_tracks = []  # List to collect all recommended track URIs
-
-    for _, artwork in sampled_artworks.iterrows():
-        # Display the artwork details
-        print(f"\nTitle: {artwork['title']}")
-        print(f"Artist: {artwork['artist_display']}")
-        print(f"Department: {artwork['department_title']}")
-                
-        # Get the genres for the department
-        department = artwork["department_title"]
-        genre_seeds = art_to_music_map.get(department, [])
-        
-        # Generate music recommendations if genres are available
-        if genre_seeds:
-            print("Music Recommendations:")
-            random_genre_seeds = random.sample(genre_seeds, min(3, len(genre_seeds)))  
-            recommendations = sp.recommendations(seed_genres=random_genre_seeds, limit=3)  # Limit to 3 tracks
-            for track in recommendations['tracks']:
-                track_name = track['name']
-                artist_name = track['artists'][0]['name']
-                track_uri = track['uri']
-                all_recommended_tracks.append(track_uri)  # Collect track URI for playlist
-                print(f" ♫ {track_name} by {artist_name}")
-        else:
-            print("No genre mapping found for this department.")
-       
-    
-    # Return all collected track URIs
-    return all_recommended_tracks
-
-def create_exhibition_playlist(track_uris):
-    if not track_uris:
-        print("No tracks to add to the playlist.")
-        return
-    
-    # Create a new Spotify playlist for the exhibition
+def create_music_playlist():
+    """Create a personalized Spotify playlist."""
     playlist_name = "Virtual Art Exhibition Playlist"
-    description = "A curated playlist featuring music to complement each artwork in the exhibition."
-    playlist = sp.user_playlist_create(user=username, name=playlist_name, public=True, description=description)
-    playlist_id = playlist['id']
     
-    # Add tracks to the playlist
-    random_genre_seeds = random.sample(genre_seeds, min(3, len(genre_seeds))) 
-    sp.playlist_add_items(playlist_id, track_uris)
-    print(f"Playlist '{playlist_name}' created with {len(track_uris)} tracks.")
-    
-    # Display the playlist URL
-    playlist_url = playlist['external_urls']['spotify']
-    print(f"Playlist URL: {playlist_url}")
+    # Create the playlist
+    playlist = sp.user_playlist_create(username, playlist_name, public=True)
+    playlist_id = playlist["id"]
 
-track_uris = display_virtual_exhibition_with_music(artworks_with_images_df, art_to_music_map)
-create_exhibition_playlist(track_uris)    
+    print(f"Created playlist: {playlist_name} (ID: {playlist_id})")
+
+    # Add tracks to the playlist
+    try:
+        sp.user_playlist_add_tracks(username, playlist_id, TRACK_URIS[:5])  # Add first 5 tracks
+    except Exception as e:
+        print(f"Error adding tracks: {e}")
+
+    return f"https://open.spotify.com/playlist/{playlist_id}"
+
+def get_artworks():
+    """Fetch 10 random artworks from preferred categories."""
+    ART_CATEGORIES = [
+        "Textiles", "Prints and Drawings", "Applied Arts of Europe", "Modern Art",
+        "Photography and Media", "Contemporary Art", "Arts of Asia", 
+        "Painting and Sculpture of Europe", "Arts of the Ancient Mediterranean and Byzantium",
+        "Arts of Africa", "Arts of the Americas"
+    ]
+    
+    ART_API_URL = "https://api.artic.edu/api/v1/artworks"
+    preferred_departments = ART_CATEGORIES
+
+    artworks = []
+    try:
+        for category in preferred_departments:
+            response = requests.get(
+                f"{ART_API_URL}?fields=id,title,artist_display,image_id,department_title&q={category}&limit=10"
+            )
+            data = response.json()
+            if "data" in data:
+                artworks.extend(random.sample(data["data"], min(1, len(data["data"]))))
+    except Exception as e:
+        print(f"Error fetching artworks: {e}")
+
+    # Format artworks for display
+    formatted_artworks = []
+    for artwork in artworks:
+        formatted_artworks.append({
+            "title": artwork.get("title", "Unknown Title"),
+            "artist": artwork.get("artist_display", "Unknown Artist"),
+            "image_url": f"https://www.artic.edu/iiif/2/{artwork['image_id']}/full/843,/0/default.jpg"
+        })
+
+    return formatted_artworks
