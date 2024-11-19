@@ -4,6 +4,8 @@
 
 What I’ve created is a simple webpage that generates a small selection of art from the Art Institute of Chicago API and pairs it with a music album I recommend for your listening pleasure.
 
+![](C:\Users\Soe-Myat\OneDrive - Hogarth Worldwide\Pictures\Flask demo.png)
+
 ------
 
 #### **Going Back One Step - My Fight with Spotify API (ง •̀_•́)ง**
