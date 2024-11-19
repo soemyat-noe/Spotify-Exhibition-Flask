@@ -4,7 +4,7 @@
 
 What I’ve created is a simple webpage that generates a small selection of art from the Art Institute of Chicago API and pairs it with a music album I recommend for your listening pleasure.
 
-![Flask demo](C:\Users\Soe-Myat\Documents\Foundation Classes\Intro to Creative Coding\spotify-flask\Flask demo.png)
+![Flask demo](flask_demo.png)
 
 ------
 
